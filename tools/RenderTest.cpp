@@ -239,7 +239,12 @@ int main (int argc, char** argv)
                 return procesar (p, sonDeProba (2.0), 2.5, bloque);
             };
             const auto x = render (512), y = render (37);
-            check (enx::cero (diferenza (x, y)), nome + U (": mesmo son con bloques de 512 e de 37"), juce::String::formatted ("(%016llx)", (unsigned long long) pegada (x)));
+            // o sobremostrado de JUCE (Saturador e Chorus) leva a cero, ao final de cada bloque, os
+            // estados por debaixo de 1e-8 (só en Intel): aí a diferenza pode ser dunha milmillonésima
+            const bool sobremostra = t == enx::SATURACION || t == enx::CHORUS;
+            const float d = diferenza (x, y);
+            check (sobremostra ? d < 1e-5f : enx::cero (d), nome + U (": mesmo son con bloques de 512 e de 37"),
+                   juce::String::formatted ("(%016llx; %.1e)", (unsigned long long) pegada (x), (double) d));
         }
         {   // bypass: o son tal cal, atrasado o que di a latencia
             EnxProcessor p (t);
