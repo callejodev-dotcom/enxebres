@@ -1,0 +1,18 @@
+BARULLO ENXEBRES para Windows (64 bits)
+Nove ferramentas dun só mando · Escoita · https://www.escoita.link
+
+Barullo Ambiente, Barullo Saturador, Barullo Brillo, Barullo Graves, Barullo Volume,
+Barullo Compresor, Barullo Sidechain, Barullo Filtro e Barullo Chorus.
+
+O máis doado: executa BarulloEnxebres-…-windows-setup.exe.
+Instala os nove en VST3 (C:\Program Files\Common Files\VST3) e en CLAP
+(C:\Program Files\Common Files\CLAP), onde os buscan os DAW.
+
+Se Windows amosa «Windows protexeu o teu PC»: preme «Máis información» → «Executar de todos os xeitos».
+(Sae porque o instalador non leva sinatura de pago; non é ningún virus.)
+
+Á man, con este .zip:
+  - copia os cartafoles «Barullo ….vst3» en C:\Program Files\Common Files\VST3
+  - copia os «Barullo ….clap» en C:\Program Files\Common Files\CLAP
+
+Despois, no DAW, volve buscar plugins e aparecerán os «Barullo …» entre os efectos.

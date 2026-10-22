@@ -1,0 +1,19 @@
+name: Compilar e publicar Barullo Enxebres
+
+# A CI común de Escoita (escoita-nucleo): en cada subida compila os nove plugins en Mac, Windows
+# e Linux e pasa as probas (tools/probas-ci.sh); ao subir unha etiqueta «v0.1.0»… publica a
+# versión cun instalador para os nove.
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  plugin:
+    uses: callejodev-dotcom/escoita-nucleo/.github/workflows/plugin.yml@serie
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      sanitizadores: "BERenderTest"

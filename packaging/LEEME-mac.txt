@@ -1,0 +1,22 @@
+BARULLO ENXEBRES para Mac (Apple Silicon e Intel, macOS 11 ou posterior)
+Nove ferramentas dun só mando · Escoita · https://www.escoita.link
+
+Barullo Ambiente, Barullo Saturador, Barullo Brillo, Barullo Graves, Barullo Volume,
+Barullo Compresor, Barullo Sidechain, Barullo Filtro e Barullo Chorus.
+
+O máis doado: abre o instalador BarulloEnxebres-…-mac.pkg. Instala os nove:
+  - VST3:  /Library/Audio/Plug-Ins/VST3/Barullo ….vst3
+  - AU:    /Library/Audio/Plug-Ins/Components/Barullo ….component
+  - CLAP:  /Library/Audio/Plug-Ins/CLAP/Barullo ….clap
+
+Se macOS di que non pode comprobar o desenvolvedor:
+  clic dereito sobre o instalador → Abrir → Abrir.
+  (Ou en Axustes do Sistema → Privacidade e seguranza → «Abrir igualmente».)
+
+Á man, con este .zip: copia cada ficheiro no cartafol de arriba que lle toca e,
+no Terminal, quítalle a marca de «descargado de internet», por exemplo:
+  xattr -cr /Library/Audio/Plug-Ins/VST3/Barullo*.vst3
+  xattr -cr /Library/Audio/Plug-Ins/Components/Barullo*.component
+  xattr -cr /Library/Audio/Plug-Ins/CLAP/Barullo*.clap
+
+Despois, volve abrir o DAW e busca os «Barullo …» entre os efectos.
