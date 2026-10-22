@@ -4,6 +4,7 @@
 //   BERenderTest --snapshot saida.png ferramenta      a interface dunha
 //   BERenderTest --galeria saida.png                  as nove xuntas
 //   BERenderTest --render saida.wav ferramenta [mando %] [selector]   un son de proba pola ferramenta
+//   BERenderTest --demo ferramenta mando% selector desprazar entrada.wav saida.wav   (a 120 BPM, para a web)
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -201,6 +202,43 @@ int main (int argc, char** argv)
         if (argc > 4) setParam (p, "mando", (float) atof (argv[4]));
         if (argc > 5) setParam (p, "selector", (float) atoi (argv[5]));
         writeWav (juce::File (juce::String (argv[2])), procesar (p, sonDeProba (3.0), 3.0 + juce::jmin (6.0, p.getTailLengthSeconds()), 512), SR);
+        return 0;
+    }
+
+    // unha ferramenta sobre un son, cun DAW a 120 BPM tocando desde o principio (para escoita.link):
+    //   --demo ferramenta mando% selector desprazar entrada.wav saida.wav
+    if (mode == "--demo" && argc > 7)
+    {
+        juce::AudioFormatManager fm; fm.registerBasicFormats();
+        std::unique_ptr<juce::AudioFormatReader> r (fm.createReaderFor (juce::File (juce::String (argv[6]))));
+        if (r == nullptr) { std::printf ("non se pode ler %s\n", argv[6]); return 1; }
+        juce::AudioBuffer<float> in ((int) r->numChannels, (int) r->lengthInSamples);
+        r->read (&in, 0, (int) r->lengthInSamples, 0, true, true);
+        const double fs = r->sampleRate;
+        EnxProcessor p (atoi (argv[2]));
+        setParam (p, "mando", (float) atof (argv[3])); setParam (p, "selector", (float) atoi (argv[4]));
+        setParam (p, "desprazar", (float) atof (argv[5]));
+        Cabeza cab; cab.bpm = 120; cab.tocando = true;
+        p.setPlayHead (&cab);
+        p.setPlayConfigDetails (2, 2, fs, 512); p.prepareToPlay (fs, 512);
+        const int L = p.getLatencySamples(), total = in.getNumSamples() + L + (int) (juce::jmin (4.0, p.getTailLengthSeconds()) * fs);
+        juce::AudioBuffer<float> out (2, total), buf (2, 512);
+        juce::MidiBuffer midi;
+        for (int pos = 0; pos < total; pos += 512)
+        {
+            const int n = juce::jmin (512, total - pos);
+            buf.setSize (2, n, false, false, true);
+            buf.clear();
+            for (int c = 0; c < 2; ++c) for (int i = 0; i < n; ++i) if (pos + i < in.getNumSamples()) buf.setSample (c, i, in.getSample (c % in.getNumChannels(), pos + i));
+            cab.ppq = pos / fs * 2.0;   // negras a 120 BPM
+            p.processBlock (buf, midi);
+            for (int c = 0; c < 2; ++c) out.copyFrom (c, pos, buf, c, 0, n);
+        }
+        p.setPlayHead (nullptr);
+        // sen a latencia: a saída á par da entrada
+        juce::AudioBuffer<float> sen (2, total - L);
+        for (int c = 0; c < 2; ++c) sen.copyFrom (c, 0, out, c, L, total - L);
+        writeWav (juce::File (juce::String (argv[7])), sen, fs);
         return 0;
     }
 
