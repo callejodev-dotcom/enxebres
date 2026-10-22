@@ -11,7 +11,7 @@ on:
 
 jobs:
   plugin:
-    uses: callejodev-dotcom/escoita-nucleo/.github/workflows/plugin.yml@serie
+    uses: callejodev-dotcom/escoita-nucleo/.github/workflows/plugin.yml@v0.4.0
     secrets: inherit
     permissions:
       contents: write

@@ -55,7 +55,7 @@ Avisan porque os instaladores non levan sinatura de pago, non porque haxa nada r
 | `Source/PluginEditor.*` | A interface e as pantallas |
 | `tools/RenderTest.cpp` | A proba |
 
-Usa o núcleo común de Escoita ([escoita-nucleo](https://github.com/callejodev-dotcom/escoita-nucleo)): o texto en galego, o aviso das versións novas, o limitador de seguridade (`escoita::Teito`), a CI e o instalador da serie.
+Usa o núcleo común de Escoita ([escoita-nucleo](https://github.com/callejodev-dotcom/escoita-nucleo), v0.4.0): o texto en galego, o aviso das versións novas, o limitador de seguridade (`escoita::Teito`), a CI e o instalador da serie.
 
 ## Probas
 
