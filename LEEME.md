@@ -40,8 +40,9 @@ Avisan porque os instaladores non levan sinatura de pago, non porque haxa nada r
 
 - **Os motores doutros plugins non se copian**: o CMake descarga Barullo Xuno e Barullo Verb nunha versión fixada (v0.1.0) e usa o filtro IR3109 e os BBD MN3009 do Xuno e a reverb do Verb. Se melloran, Barullo Enxebres mellora ao subir esa versión.
 - **Un código para os nove**: cada plugin compílase co seu número (`ENXEBRE_FERRAMENTA`) e escolle a súa ferramenta (`Source/dsp/`). A interface é a mesma, coa cor e a pantalla de cada un.
-- **Saturador e Chorus** traballan a catro veces a frecuencia de mostraxe; **Volume** mira 1,5 ms adiante. Os tres din a súa latencia ao DAW.
-- **A 0, o son tal cal** en Ambiente, Brillo, Graves, Compresor, Sidechain e Filtro (bit a bit).
+- **Saturador e Chorus** traballan a catro veces a frecuencia de mostraxe; **Volume** mira 1,5 ms adiante. E o **limitador de seguridade** das nove (nunca pasan de −1 dBFS) mira tamén 1,5 ms adiante: baixa suave antes do pico, así non soa a clip. Todas din a súa latencia ao DAW, que a compensa.
+- **A 0, o son tal cal** en Ambiente, Brillo, Graves, Compresor, Sidechain e Filtro (bit a bit, atrasado a latencia).
+- **O Compresor compensa seguindo o material**: sobe o que baixou de media a redución, así o volume queda case igual con calquera nivel de entrada (nunha mestura normal, ao 75 %, +0,3 dB) e os golpes non chocan co teito.
 - **O saturador** compensa o volume medindo a súa propia curva: un seno a −18 dBFS sae co mesmo volume con calquera carácter e mando.
 - **O sidechain** segue a posición do DAW mentres toca; parado, vai só ao tempo do DAW (ou a 120).
 
@@ -55,7 +56,7 @@ Avisan porque os instaladores non levan sinatura de pago, non porque haxa nada r
 | `Source/PluginEditor.*` | A interface e as pantallas |
 | `tools/RenderTest.cpp` | A proba |
 
-Usa o núcleo común de Escoita ([escoita-nucleo](https://github.com/callejodev-dotcom/escoita-nucleo), v0.4.0): o texto en galego, o aviso das versións novas, o limitador de seguridade (`escoita::Teito`), a CI e o instalador da serie.
+Usa o núcleo común de Escoita ([escoita-nucleo](https://github.com/callejodev-dotcom/escoita-nucleo), v0.5.0): o texto en galego, o aviso das versións novas, o limitador de seguridade (`escoita::Teito`), a CI e o instalador da serie.
 
 ## Probas
 
@@ -65,7 +66,7 @@ Para cada unha das nove: ao abrir nos valores de partida, finita e baixo o teito
 - **Saturador**: o volume queda parello (±3,5 dB) nos tres caracteres e aparecen harmónicos.
 - **Brillo / Graves**: suben onde din e non tocan o resto.
 - **Volume**: un son baixo sobe 14 dB; un forte non pasa de −1 dBFS.
-- **Compresor**: aperta os fortes e compensa.
+- **Compresor**: aperta os fortes (de 24 dB de diferenza a menos de 14) e, ao 75 % nunha mestura normal, o volume queda (±1,5 dB) e non chega ao teito.
 - **Sidechain**: baixa 40 dB en cada tempo e volve; *desprazar* move a baixada.
 - **Filtro**: o paso baixo pecha os agudos; o paso alto, os graves.
 - **Chorus**: estéreo nos modos I e II, mono no I+II.

@@ -89,10 +89,11 @@ void EnxProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     ferr->axustar (c);   // primeiro os axustes, para que prepare xa nos seus valores
     ferr->preparar (sr, ANACO);
     ferr->axustar (c);
-    latencia = ferr->latencia();
+    // o teito mira 1,5 ms por diante (baixa suave antes do pico): a latencia é a da ferramenta e a súa
+    teito.preparar (sr, 0.080, 0.891, 0.0015);
+    latencia = ferr->latencia() + teito.latencia();
     setLatencySamples (latencia);
     secoL.assign ((size_t) latencia + 1, 0.0f); secoR.assign ((size_t) latencia + 1, 0.0f); secoW = 0;
-    teito.preparar (sr, 0.080, 0.891);
     bypassS = pBypass->load() > 0.5f ? 1.0 : 0.0;
 }
 
@@ -119,7 +120,7 @@ void EnxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
         }
     ferr->axustar (c);
 
-    // o seco (para o bypass), atrasado a latencia da ferramenta
+    // o seco (para o bypass), atrasado a latencia da ferramenta e a do teito
     float pe = 0;
     const int N = (int) secoL.size();
     for (int i = 0; i < n; ++i)

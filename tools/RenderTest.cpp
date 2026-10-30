@@ -104,6 +104,49 @@ static juce::AudioBuffer<float> sonDeProba (double len = 2.0)
     return b;
 }
 
+// unha mestura de proba a 120 BPM, coma un bucle de verdade: bombo, caixa, charles, baixo e un acorde, cos
+// picos arredor de −7 dBFS (−22 LUFS)
+static juce::AudioBuffer<float> mesturaDeProba (double len = 8.0)
+{
+    juce::AudioBuffer<float> b (2, (int) (len * SR));
+    b.clear();
+    juce::Random rnd (7);
+    auto engadir = [&] (int k, float l, float rr) { if (k < b.getNumSamples()) { b.setSample (0, k, b.getSample (0, k) + l); b.setSample (1, k, b.getSample (1, k) + rr); } };
+    for (double t0 = 0; t0 < len; t0 += 0.125)
+    {
+        const int k0 = (int) (t0 * SR), paso = juce::roundToInt (t0 / 0.125) % 8;
+        if (paso % 4 == 0)   // bombo: 55 Hz que baixa dende 150
+        {
+            double fase = 0;
+            for (int i = 0; i < (int) (0.3 * SR); ++i)
+            {
+                fase += 2 * enx::PI * (55.0 + 95.0 * std::exp (-i / (0.02 * SR))) / SR;
+                const float x = 0.32f * (float) std::sin (fase) * std::exp (-(float) i / (float) (0.09 * SR));
+                engadir (k0 + i, x, x);
+            }
+        }
+        if (paso == 2 || paso == 6)   // caixa
+            for (int i = 0; i < (int) (0.15 * SR); ++i)
+            {
+                const float e = 0.16f * std::exp (-(float) i / (float) (0.04 * SR));
+                engadir (k0 + i, e * (rnd.nextFloat() * 2 - 1), e * (rnd.nextFloat() * 2 - 1));
+            }
+        for (int i = 0; i < (int) (0.03 * SR); ++i)   // charles
+        {
+            const float e = 0.04f * std::exp (-(float) i / (float) (0.008 * SR));
+            engadir (k0 + i, e * (rnd.nextFloat() * 2 - 1), e * (rnd.nextFloat() * 2 - 1));
+        }
+    }
+    for (int i = 0; i < b.getNumSamples(); ++i)   // baixo e acorde
+    {
+        const double t = i / SR;
+        float x = 0.06f * (float) std::sin (2 * enx::PI * 55.0 * t);
+        for (double f : { 220.0, 261.63, 329.63 }) x += 0.02f * (float) std::sin (2 * enx::PI * f * t);
+        engadir (i, x, x);
+    }
+    return b;
+}
+
 static double rmsDb (const juce::AudioBuffer<float>& b, double t0, double t1, int canle = -1)
 {
     double e = 0; int n = 0;
@@ -329,7 +372,13 @@ int main (int argc, char** argv)
         EnxProcessor p (t);
         setParam (p, "mando", 0.0f);
         const auto son = sonDeProba (1.0);
-        check (enx::cero (diferenza (procesar (p, son, 1.0, 512), son)), U (enx::FERRAMENTAS[t].nome) + U (": a 0, o son tal cal"));
+        const auto o = procesar (p, son, 1.0, 512);
+        // (atrasado a latencia: a do teito, que mira 1,5 ms por diante)
+        const int L = p.getLatencySamples();
+        float d = 0;
+        for (int c = 0; c < 2; ++c)
+            for (int i = L; i < o.getNumSamples(); ++i) d = juce::jmax (d, std::abs (o.getSample (c, i) - son.getSample (c, i - L)));
+        check (enx::cero (d) && L == 72, U (enx::FERRAMENTAS[t].nome) + U (": a 0, o son tal cal"), "(" + juce::String (L) + U (" mostras de latencia)"));
     }
 
     // ---- o que fai cada unha, medido
@@ -375,13 +424,31 @@ int main (int argc, char** argv)
         const float pk = pico (procesar (p, seno (440.0, -3.0, 1.0), 1.0, 512));
         check (std::abs (baixo - 14.0) < 0.5 && pk <= 0.8913f && pk > 0.85f, U ("Volume: +14 dB e o teito a −1 dBFS"), juce::String::formatted ("(%.1f dB; pico %.4f)", baixo, pk));
     }
-    {   // Compresor: un son forte baixa; un baixo queda (coa compensación)
+    {   // Compresor: aperta os fortes. Un son que vai e vén (−6 e −30 dB, cada 0,25 s): a distancia entre os dous baixa
         EnxProcessor p (enx::COMPRESOR);
         setParam (p, "mando", 100.0f);
         procesar (p, seno (440.0, -6.0, 1.0), 1.0, 512);
         const float gr = p.reducion.load();
-        const double forte = ganancia (enx::COMPRESOR, 100.0f, 1, 440.0, -6.0), baixo = ganancia (enx::COMPRESOR, 100.0f, 1, 440.0, -50.0);
-        check (gr < -12.0f && forte < baixo - 10.0, U ("Compresor: aperta os fortes"), U ("(redución ") + juce::String (gr, 1) + juce::String::formatted (" dB; %.1f / %.1f dB)", forte, baixo));
+        auto son = seno (440.0, -6.0, 4.0);
+        for (int i = 0; i < son.getNumSamples(); ++i)
+            if ((i / (int) (0.25 * SR)) % 2 == 1) for (int c = 0; c < 2; ++c) son.setSample (c, i, son.getSample (c, i) * (float) enx::dbAGanancia (-24.0));
+        EnxProcessor q (enx::COMPRESOR);
+        setParam (q, "mando", 100.0f);
+        const auto o = procesar (q, son, 4.0, 512);
+        const int L = q.getLatencySamples();
+        const double d = rmsDb (o, 3.0 + 0.05 + L / SR, 3.25 + L / SR) - rmsDb (o, 3.25 + 0.05 + L / SR, 3.5 + L / SR);
+        check (gr < -12.0f && d < 14.0, U ("Compresor: aperta os fortes"), U ("(redución ") + juce::String (gr, 1) + U (" dB; de 24 dB de diferenza a ") + juce::String (d, 1) + ")");
+    }
+    {   // Compresor ao 75 % nunha mestura normal: o volume queda (±1,5 dB) e non chega ao teito
+        const auto son = mesturaDeProba();
+        EnxProcessor p (enx::COMPRESOR);
+        setParam (p, "mando", 75.0f);
+        const auto o = procesar (p, son, 8.0, 512);
+        const int L = p.getLatencySamples();
+        const double antes = rmsDb (son, 4.0, 8.0), despois = rmsDb (o, 4.0 + L / SR, 8.0);
+        const float pe = pico (son), ps = pico (o);
+        check (std::abs (despois - antes) < 1.5 && ps < 0.85f && ps < pe * 1.41f, U ("Compresor: ao 75 %, o mesmo volume e sen chegar ao teito"),
+               juce::String::formatted ("(%+.1f dB; pico %.1f -> %.1f dBFS)", despois - antes, juce::Decibels::gainToDecibels (pe), juce::Decibels::gainToDecibels (ps)));
     }
     {   // Sidechain: a 120 BPM en negras, baixa 40 dB en cada tempo e volve; desprazar move a baixada
         auto envolvente = [&] (float desp)
@@ -405,7 +472,10 @@ int main (int argc, char** argv)
         const double fondo = minimo (a, 0.45, 0.95, oa) - (-6.0 - 3.0103);
         minimo (b, 0.45, 0.95, ob);
         const double volta = rmsDb (a, 0.95, 0.99) - (-6.0 - 3.0103);
-        const double msA = (oa - 0.5 * SR) * 1000.0 / SR, msB = (ob - 0.5 * SR) * 1000.0 / SR;
+        EnxProcessor q (enx::SIDECHAIN);   // a latencia (a do teito, que mira 1,5 ms por diante)
+        q.setPlayConfigDetails (2, 2, SR, 512); q.prepareToPlay (SR, 512);
+        const double lat = q.getLatencySamples();
+        const double msA = (oa - lat - 0.5 * SR) * 1000.0 / SR, msB = (ob - lat - 0.5 * SR) * 1000.0 / SR;
         check (fondo < -30.0 && volta > -2.0 && std::abs (msA) < 6.0 && std::abs (msB - msA - 40.0) < 3.0, U ("Sidechain: baixa en cada tempo e volve; desprazar"),
                juce::String::formatted ("(%.0f dB; ao final %.1f dB; %.0f / %.0f ms)", fondo, volta, msA, msB));
     }
