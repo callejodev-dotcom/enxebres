@@ -5,6 +5,7 @@
 //   BERenderTest --galeria saida.png                  as nove xuntas
 //   BERenderTest --render saida.wav ferramenta [mando %] [selector]   un son de proba pola ferramenta
 //   BERenderTest --demo ferramenta mando% selector desprazar entrada.wav saida.wav   (a 120 BPM, para a web)
+//     (o mando tamén pode moverse: «s:%,s:%,…», os puntos dunha liña en segundos, p. ex. 0:0,2:0,6:100)
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -259,7 +260,20 @@ int main (int argc, char** argv)
         r->read (&in, 0, (int) r->lengthInSamples, 0, true, true);
         const double fs = r->sampleRate;
         EnxProcessor p (atoi (argv[2]));
-        setParam (p, "mando", (float) atof (argv[3])); setParam (p, "selector", (float) atoi (argv[4]));
+        // o mando: un valor, ou os puntos dunha liña (segundos:%, separados por comas)
+        std::vector<std::pair<double, double>> puntos;
+        for (auto& t : juce::StringArray::fromTokens (juce::String (argv[3]), ",", ""))
+            puntos.push_back ({ t.containsChar (':') ? t.upToFirstOccurrenceOf (":", false, false).getDoubleValue() : 0.0,
+                                t.fromLastOccurrenceOf (":", false, false).getDoubleValue() });
+        auto mandoEn = [&puntos] (double t)
+        {
+            if (t <= puntos.front().first) return puntos.front().second;
+            for (size_t k = 1; k < puntos.size(); ++k)
+                if (t < puntos[k].first)
+                    return puntos[k - 1].second + (puntos[k].second - puntos[k - 1].second) * (t - puntos[k - 1].first) / (puntos[k].first - puntos[k - 1].first);
+            return puntos.back().second;
+        };
+        setParam (p, "mando", (float) mandoEn (0)); setParam (p, "selector", (float) atoi (argv[4]));
         setParam (p, "desprazar", (float) atof (argv[5]));
         Cabeza cab; cab.bpm = 120; cab.tocando = true;
         p.setPlayHead (&cab);
@@ -274,6 +288,7 @@ int main (int argc, char** argv)
             buf.clear();
             for (int c = 0; c < 2; ++c) for (int i = 0; i < n; ++i) if (pos + i < in.getNumSamples()) buf.setSample (c, i, in.getSample (c % in.getNumChannels(), pos + i));
             cab.ppq = pos / fs * 2.0;   // negras a 120 BPM
+            if (puntos.size() > 1) setParam (p, "mando", (float) mandoEn (pos / fs));
             p.processBlock (buf, midi);
             for (int c = 0; c < 2; ++c) out.copyFrom (c, pos, buf, c, 0, n);
         }
