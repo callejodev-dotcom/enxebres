@@ -2,6 +2,12 @@
 
 Unha ferramenta de [Escoita](https://www.escoita.link).
 
+## Novidades na 0.2.0
+
+- **Compresor**: a compensación do volume segue o material, así que o que sae soa tan forte coma o que entra. Antes subía de máis (ata 14 dB) e os picos chocaban co teito.
+- **Limitador de seguridade novo**: mira 1,5 ms por diante e baixa suave antes do pico, en vez de achatalo. Aínda que o son vaia moi forte, xa non soa a clip. O DAW compensa só eses 1,5 ms (a latencia que declara o plugin).
+- O bypass vai co mesmo atraso, á par do son procesado.
+
 ## Novidades na 0.1.0
 
 - A primeira versión: as nove ferramentas.
